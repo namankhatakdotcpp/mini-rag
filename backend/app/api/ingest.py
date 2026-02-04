@@ -31,10 +31,11 @@ async def ingest(
     normalized_text = raw_text.strip() if raw_text is not None else None
 
     if file is None and not normalized_text:
-        raise HTTPException(
-            status_code=400,
-            detail="Either text or file must be provided.",
-        )
+        return {
+            "status": "noop",
+            "message": "No text or file provided.",
+            "chunks_ingested": 0,
+        }
 
     # Step 1: Get raw content
     if file is not None:
@@ -42,28 +43,34 @@ async def ingest(
         content = raw_bytes.decode("utf-8", errors="ignore").strip()
         source = file.filename or "upload"
         if not content:
-            raise HTTPException(
-                status_code=400,
-                detail="Uploaded file is empty after decoding.",
-            )
+            return {
+                "status": "noop",
+                "message": "Uploaded file is empty after decoding.",
+                "chunks_ingested": 0,
+                "source": source,
+            }
     else:
         content = normalized_text
         source = "paste"
         if not content:
-            raise HTTPException(
-                status_code=400,
-                detail="Text input is empty after trimming.",
-            )
+            return {
+                "status": "noop",
+                "message": "Text input is empty after trimming.",
+                "chunks_ingested": 0,
+                "source": source,
+            }
 
     # Step 2: Chunk text
     chunker = TextChunker()
     chunks = chunker.chunk(content)
 
     if not chunks:
-        raise HTTPException(
-            status_code=400,
-            detail="No valid text chunks generated.",
-        )
+        return {
+            "status": "noop",
+            "message": "No valid text chunks generated.",
+            "chunks_ingested": 0,
+            "source": source,
+        }
 
     # Step 3: Generate embeddings
     embedder = Embedder()
