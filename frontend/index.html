@@ -257,15 +257,21 @@
             body: formData,
           });
 
+          const data = await safeJson(response);
+
           if (!response.ok) {
-            const error = await safeJson(response);
-            throw new Error(error?.detail || "Ingest failed.");
+            throw new Error(data?.detail || "Ingest failed.");
           }
 
-          const data = await response.json();
+          const chunkCount =
+            data?.chunks_ingested ??
+            data?.chunks ??
+            0;
+          const sourceLabel = data?.source || data?.message || "input";
+
           setStatus(
             ingestStatus,
-            `Ingested ${data.chunks_ingested} chunks from ${data.source}.`,
+            `Ingested ${chunkCount} chunks from ${sourceLabel}.`,
             "success"
           );
           ingestText.value = "";
@@ -296,15 +302,15 @@
             body: JSON.stringify({ question: questionValue }),
           });
 
+          const data = await safeJson(response);
+
           if (!response.ok) {
-            const error = await safeJson(response);
-            throw new Error(error?.detail || "Query failed.");
+            throw new Error(data?.detail || "Query failed.");
           }
 
-          const data = await response.json();
-          answerOutput.textContent = data.answer || "No answer returned.";
+          answerOutput.textContent = data?.answer || "No answer returned.";
 
-          if (data.sources && data.sources.length) {
+          if (data?.sources && data.sources.length) {
             data.sources.forEach((src, idx) => {
               const card = document.createElement("div");
               card.className = "source-card";
@@ -337,4 +343,3 @@
     </script>
   </body>
 </html>
-<!-- vercel fresh deploy -->
