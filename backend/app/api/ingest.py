@@ -26,10 +26,11 @@ async def ingest(
     - Swagger UI uses multipart encoding by default
     """
 
+    # Prefer text_input, fall back to text for compatibility
     raw_text = text_input if text_input is not None else text
     normalized_text = raw_text.strip() if raw_text is not None else None
 
-    if not normalized_text and file is None:
+    if file is None and not normalized_text:
         raise HTTPException(
             status_code=400,
             detail="Either text or file must be provided.",
@@ -38,11 +39,21 @@ async def ingest(
     # Step 1: Get raw content
     if file is not None:
         raw_bytes = await file.read()
-        content = raw_bytes.decode("utf-8", errors="ignore")
-        source = file.filename
+        content = raw_bytes.decode("utf-8", errors="ignore").strip()
+        source = file.filename or "upload"
+        if not content:
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded file is empty after decoding.",
+            )
     else:
         content = normalized_text
         source = "paste"
+        if not content:
+            raise HTTPException(
+                status_code=400,
+                detail="Text input is empty after trimming.",
+            )
 
     # Step 2: Chunk text
     chunker = TextChunker()
@@ -57,6 +68,12 @@ async def ingest(
     # Step 3: Generate embeddings
     embedder = Embedder()
     embeddings = embedder.embed(chunks)
+
+    if not embeddings:
+        raise HTTPException(
+            status_code=500,
+            detail="Embedding generation returned no vectors.",
+        )
 
     # Step 4: Persist to database
     insert_stmt = text(
