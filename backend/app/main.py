@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import health, ingest, query
@@ -21,6 +23,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+def root():
+    return {
+        "status": "ok",
+        "message": "Mini RAG backend is running.",
+        "docs": "/docs",
+    }
+
+
+@app.get("/version")
+def version():
+    return {
+        "service": "mini-rag-backend",
+        "version": app.version,
+        "git_commit": os.getenv("RENDER_GIT_COMMIT"),
+    }
+
 
 # Register routers
 app.include_router(health.router)
