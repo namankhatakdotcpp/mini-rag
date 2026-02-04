@@ -4,12 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mini RAG Console</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
     <style>
       :root {
         --bg: #0f1221;
@@ -20,6 +14,7 @@
         --accent: #7ce7ff;
         --accent-2: #f4b7ff;
         --danger: #ff7a7a;
+        --success: #7dffb3;
         --shadow: 0 18px 40px rgba(7, 10, 24, 0.4);
         --radius: 16px;
       }
@@ -32,25 +27,25 @@
         margin: 0;
         background: radial-gradient(circle at top, #1c2144 0%, #0f1221 60%);
         color: var(--text);
-        font-family: "Space Grotesk", system-ui, -apple-system, sans-serif;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         min-height: 100vh;
       }
 
       header {
-        padding: 40px 24px 24px;
+        padding: 36px 24px 18px;
         text-align: center;
       }
 
       header h1 {
         margin: 0 0 8px;
-        font-size: clamp(28px, 4vw, 44px);
+        font-size: clamp(28px, 4vw, 42px);
         letter-spacing: -0.02em;
       }
 
       header p {
         margin: 0;
         color: var(--muted);
-        font-size: 16px;
+        font-size: 15px;
       }
 
       .container {
@@ -65,7 +60,7 @@
       .panel {
         background: linear-gradient(160deg, var(--panel), var(--panel-accent));
         border-radius: var(--radius);
-        padding: 24px;
+        padding: 22px;
         box-shadow: var(--shadow);
         border: 1px solid rgba(124, 231, 255, 0.12);
       }
@@ -83,7 +78,6 @@
       }
 
       input[type="text"],
-      input[type="url"],
       textarea {
         width: 100%;
         padding: 12px 14px;
@@ -91,7 +85,7 @@
         border: 1px solid rgba(124, 231, 255, 0.2);
         background: rgba(15, 18, 33, 0.9);
         color: var(--text);
-        font-family: "Space Grotesk", sans-serif;
+        font-family: inherit;
       }
 
       textarea {
@@ -137,13 +131,16 @@
         color: var(--danger);
       }
 
+      .status.success {
+        color: var(--success);
+      }
+
       .output {
         margin-top: 16px;
         padding: 16px;
         background: rgba(9, 12, 24, 0.7);
         border-radius: 12px;
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 13px;
+        font-size: 14px;
         white-space: pre-wrap;
       }
 
@@ -171,11 +168,6 @@
         font-size: 12px;
         color: var(--muted);
       }
-
-      .muted {
-        color: var(--muted);
-        font-size: 12px;
-      }
     </style>
   </head>
   <body>
@@ -185,18 +177,6 @@
     </header>
 
     <main class="container">
-      <section class="panel">
-        <h2>API Configuration</h2>
-        <label for="apiBase">API Base URL</label>
-        <input
-          type="url"
-          id="apiBase"
-          value="http://localhost:8000"
-          placeholder="http://localhost:8000"
-        />
-        <p class="muted">Make sure CORS is enabled if you host this separately.</p>
-      </section>
-
       <section class="panel">
         <h2>Ingest Content</h2>
         <label for="ingestText">Paste text</label>
@@ -225,7 +205,8 @@
     </main>
 
     <script>
-      const apiBase = document.getElementById("apiBase");
+      const API_BASE = "https://mini-rag-gt3r.onrender.com";
+
       const ingestText = document.getElementById("ingestText");
       const ingestFile = document.getElementById("ingestFile");
       const ingestBtn = document.getElementById("ingestBtn");
@@ -237,9 +218,18 @@
       const answerOutput = document.getElementById("answerOutput");
       const sources = document.getElementById("sources");
 
-      const setStatus = (el, message, isError = false) => {
+      const setStatus = (el, message, type = "") => {
         el.textContent = message;
-        el.classList.toggle("error", isError);
+        el.classList.remove("error", "success");
+        if (type) el.classList.add(type);
+      };
+
+      const safeJson = async (response) => {
+        try {
+          return await response.json();
+        } catch {
+          return null;
+        }
       };
 
       ingestBtn.addEventListener("click", async () => {
@@ -248,32 +238,40 @@
 
         try {
           const formData = new FormData();
-          if (ingestText.value.trim()) {
-            formData.append("text", ingestText.value.trim());
+          const textValue = ingestText.value.trim();
+
+          if (textValue) {
+            formData.append("text_input", textValue);
           }
           if (ingestFile.files[0]) {
             formData.append("file", ingestFile.files[0]);
           }
 
-          const response = await fetch(`${apiBase.value}/api/ingest`, {
+          if (![...formData.keys()].length) {
+            setStatus(ingestStatus, "Please provide text or a file.", "error");
+            return;
+          }
+
+          const response = await fetch(`${API_BASE}/api/ingest`, {
             method: "POST",
             body: formData,
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || "Ingest failed.");
+            const error = await safeJson(response);
+            throw new Error(error?.detail || "Ingest failed.");
           }
 
           const data = await response.json();
           setStatus(
             ingestStatus,
-            `Ingested ${data.chunks_ingested} chunks from ${data.source}.`
+            `Ingested ${data.chunks_ingested} chunks from ${data.source}.`,
+            "success"
           );
           ingestText.value = "";
           ingestFile.value = "";
         } catch (err) {
-          setStatus(ingestStatus, err.message, true);
+          setStatus(ingestStatus, err.message, "error");
         } finally {
           ingestBtn.disabled = false;
         }
@@ -286,15 +284,21 @@
         sources.innerHTML = "";
 
         try {
-          const response = await fetch(`${apiBase.value}/api/query`, {
+          const questionValue = question.value.trim();
+          if (!questionValue) {
+            setStatus(queryStatus, "Please enter a question.", "error");
+            return;
+          }
+
+          const response = await fetch(`${API_BASE}/api/query`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: question.value.trim() }),
+            body: JSON.stringify({ question: questionValue }),
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || "Query failed.");
+            const error = await safeJson(response);
+            throw new Error(error?.detail || "Query failed.");
           }
 
           const data = await response.json();
@@ -304,14 +308,18 @@
             data.sources.forEach((src, idx) => {
               const card = document.createElement("div");
               card.className = "source-card";
+
               const title = document.createElement("h3");
               title.textContent = `Source ${idx + 1}`;
+
               const meta = document.createElement("p");
               meta.textContent =
                 `source: ${src.source || "unknown"} | ` +
                 `chunk: ${src.chunk_index ?? "n/a"}`;
+
               const content = document.createElement("p");
               content.textContent = src.content;
+
               card.appendChild(title);
               card.appendChild(meta);
               card.appendChild(content);
@@ -319,9 +327,9 @@
             });
           }
 
-          setStatus(queryStatus, "Done.");
+          setStatus(queryStatus, "Done.", "success");
         } catch (err) {
-          setStatus(queryStatus, err.message, true);
+          setStatus(queryStatus, err.message, "error");
         } finally {
           queryBtn.disabled = false;
         }

@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "public": "frontend",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
