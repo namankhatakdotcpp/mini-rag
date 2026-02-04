@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -21,23 +21,32 @@ def query_rag(payload: QueryRequest, db: Session = Depends(get_db)):
     4) Generate an answer with citations
     """
 
-    question = payload.question.strip()
+    question = payload.question.strip() if payload.question else ""
     if not question:
-        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+        return {
+            "answer": "No question provided.",
+            "sources": []
+        }
 
-    # Step 1: Embed the query
-    embedder = Embedder()
-    query_embedding = embedder.embed([question])[0]
+    try:
+        # Step 1: Embed the query
+        embedder = Embedder()
+        query_embedding = embedder.embed([question])[0]
 
-    # Step 2: Retrieve similar chunks
-    retriever = Retriever(db)
-    retrieved = retriever.search(query_embedding, settings.top_k)
+        # Step 2: Retrieve similar chunks
+        retriever = Retriever(db)
+        retrieved = retriever.search(query_embedding, settings.top_k)
 
-    # Step 3: Generate grounded answer
-    llm = LLMClient()
-    answer = llm.generate_answer(question, retrieved)
+        # Step 3: Generate grounded answer
+        llm = LLMClient()
+        answer = llm.generate_answer(question, retrieved)
 
-    # Step 4: Build response
-    sources = [RetrievedChunk(**chunk) for chunk in retrieved]
+        # Step 4: Build response
+        sources = [RetrievedChunk(**chunk) for chunk in retrieved]
 
-    return QueryResponse(answer=answer, sources=sources)
+        return QueryResponse(answer=answer, sources=sources)
+    except Exception:
+        return {
+            "answer": "Query failed.",
+            "sources": []
+        }

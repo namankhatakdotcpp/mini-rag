@@ -2,7 +2,7 @@ import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from app.core.logging import setup_logging
 
 # Initialize logging once at startup
@@ -25,9 +25,34 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=200,
+        content={
+            "error": str(exc),
+            "answer": "Backend error",
+            "sources": []
+        },
+        headers={
+            "Access-Control-Allow-Origin": "https://mini-b1qoueqff-namans-projects-dfbad539.vercel.app",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
+
+
 @app.options("/{path:path}")
-async def preflight_handler(path: str, request: Request):
-    return Response(status_code=200)
+async def options_handler(path: str):
+    return JSONResponse(
+        status_code=200,
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "https://mini-b1qoueqff-namans-projects-dfbad539.vercel.app",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 
 @app.get("/")
