@@ -52,3 +52,4 @@ The frontend is a static HTML console that calls the backend directly.
 Open `frontend/index.html` in a browser and set the API base to your running backend (default `http://localhost:8000`).
 
 If you serve the frontend from a different origin, ensure CORS is enabled on the backend.
+
