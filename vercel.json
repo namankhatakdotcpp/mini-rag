@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "public": "frontend",
+  "outputDirectory": "frontend",
   "cleanUrls": true,
   "trailingSlash": false,
   "routes": [
