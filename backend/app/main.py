@@ -1,7 +1,8 @@
 import os
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from app.core.logging import setup_logging
 
 # Initialize logging once at startup
@@ -13,18 +14,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS for Vercel frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://mini-b1qoueqff-namans-projects-dfbad539.vercel.app"],
+    allow_origins=[
+        "https://mini-b1qoueqff-namans-projects-dfbad539.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
-@app.options("/{full_path:path}")
-def preflight_handler(full_path: str):
+@app.options("/{path:path}")
+async def preflight_handler(path: str, request: Request):
     return Response(status_code=200)
 
 
@@ -46,7 +48,6 @@ def version():
     }
 
 
-# Register routers
 from app.api import health, ingest, query
 
 app.include_router(health.router)

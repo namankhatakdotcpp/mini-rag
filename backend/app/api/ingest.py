@@ -26,6 +26,13 @@ async def ingest(
     - Swagger UI uses multipart encoding by default
     """
 
+    if not text and not file:
+        return {
+            "status": "ok",
+            "message": "Nothing to ingest",
+            "chunks": 0
+        }
+
     # Prefer text_input, fall back to text for compatibility
     raw_text = text_input if text_input is not None else text
     normalized_text = raw_text.strip() if raw_text is not None else None
