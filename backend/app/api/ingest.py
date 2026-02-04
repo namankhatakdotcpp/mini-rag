@@ -13,7 +13,8 @@ router = APIRouter()
 
 @router.post("/ingest")
 async def ingest(
-    text_input: Optional[str] = Form(None, alias="text"),
+    text_input: Optional[str] = Form(None),
+    text: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ):
@@ -25,19 +26,22 @@ async def ingest(
     - Swagger UI uses multipart encoding by default
     """
 
-    if not text_input and not file:
+    raw_text = text_input if text_input is not None else text
+    normalized_text = raw_text.strip() if raw_text is not None else None
+
+    if not normalized_text and file is None:
         raise HTTPException(
             status_code=400,
             detail="Either text or file must be provided.",
         )
 
     # Step 1: Get raw content
-    if file:
+    if file is not None:
         raw_bytes = await file.read()
         content = raw_bytes.decode("utf-8", errors="ignore")
         source = file.filename
     else:
-        content = text_input
+        content = normalized_text
         source = "paste"
 
     # Step 2: Chunk text
