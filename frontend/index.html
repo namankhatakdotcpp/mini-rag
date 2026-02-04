@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mini RAG Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0f1221;
+        --panel: #161a2e;
+        --panel-accent: #1f2440;
+        --text: #e9ecf8;
+        --muted: #aab1d1;
+        --accent: #7ce7ff;
+        --accent-2: #f4b7ff;
+        --danger: #ff7a7a;
+        --shadow: 0 18px 40px rgba(7, 10, 24, 0.4);
+        --radius: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top, #1c2144 0%, #0f1221 60%);
+        color: var(--text);
+        font-family: "Space Grotesk", system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+      }
+
+      header {
+        padding: 40px 24px 24px;
+        text-align: center;
+      }
+
+      header h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 4vw, 44px);
+        letter-spacing: -0.02em;
+      }
+
+      header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px 48px;
+        display: grid;
+        gap: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+
+      .panel {
+        background: linear-gradient(160deg, var(--panel), var(--panel-accent));
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(124, 231, 255, 0.12);
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      input[type="text"],
+      input[type="url"],
+      textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(124, 231, 255, 0.2);
+        background: rgba(15, 18, 33, 0.9);
+        color: var(--text);
+        font-family: "Space Grotesk", sans-serif;
+      }
+
+      textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+
+      .row {
+        display: grid;
+        gap: 16px;
+        margin-top: 12px;
+      }
+
+      .button {
+        margin-top: 16px;
+        padding: 12px 16px;
+        border-radius: 999px;
+        background: linear-gradient(120deg, var(--accent), var(--accent-2));
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        color: #0f1221;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        box-shadow: 0 12px 24px rgba(124, 231, 255, 0.2);
+      }
+
+      .button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .button:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      .status {
+        margin-top: 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .output {
+        margin-top: 16px;
+        padding: 16px;
+        background: rgba(9, 12, 24, 0.7);
+        border-radius: 12px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+
+      .sources {
+        margin-top: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .source-card {
+        background: rgba(9, 12, 24, 0.7);
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid rgba(124, 231, 255, 0.12);
+      }
+
+      .source-card h3 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        color: var(--accent);
+      }
+
+      .source-card p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Mini RAG Console</h1>
+      <p>Ingest documents, ask questions, and get grounded answers.</p>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <h2>API Configuration</h2>
+        <label for="apiBase">API Base URL</label>
+        <input
+          type="url"
+          id="apiBase"
+          value="http://localhost:8000"
+          placeholder="http://localhost:8000"
+        />
+        <p class="muted">Make sure CORS is enabled if you host this separately.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Ingest Content</h2>
+        <label for="ingestText">Paste text</label>
+        <textarea id="ingestText" placeholder="Paste content to ingest..."></textarea>
+
+        <div class="row">
+          <div>
+            <label for="ingestFile">Or upload a file</label>
+            <input type="file" id="ingestFile" />
+          </div>
+        </div>
+
+        <button class="button" id="ingestBtn">Ingest</button>
+        <div class="status" id="ingestStatus"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Ask a Question</h2>
+        <label for="question">Question</label>
+        <textarea id="question" placeholder="Ask something grounded in your documents..."></textarea>
+        <button class="button" id="queryBtn">Run Query</button>
+        <div class="status" id="queryStatus"></div>
+        <div class="output" id="answerOutput"></div>
+        <div class="sources" id="sources"></div>
+      </section>
+    </main>
+
+    <script>
+      const apiBase = document.getElementById("apiBase");
+      const ingestText = document.getElementById("ingestText");
+      const ingestFile = document.getElementById("ingestFile");
+      const ingestBtn = document.getElementById("ingestBtn");
+      const ingestStatus = document.getElementById("ingestStatus");
+
+      const question = document.getElementById("question");
+      const queryBtn = document.getElementById("queryBtn");
+      const queryStatus = document.getElementById("queryStatus");
+      const answerOutput = document.getElementById("answerOutput");
+      const sources = document.getElementById("sources");
+
+      const setStatus = (el, message, isError = false) => {
+        el.textContent = message;
+        el.classList.toggle("error", isError);
+      };
+
+      ingestBtn.addEventListener("click", async () => {
+        setStatus(ingestStatus, "Ingesting...");
+        ingestBtn.disabled = true;
+
+        try {
+          const formData = new FormData();
+          if (ingestText.value.trim()) {
+            formData.append("text", ingestText.value.trim());
+          }
+          if (ingestFile.files[0]) {
+            formData.append("file", ingestFile.files[0]);
+          }
+
+          const response = await fetch(`${apiBase.value}/api/ingest`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "Ingest failed.");
+          }
+
+          const data = await response.json();
+          setStatus(
+            ingestStatus,
+            `Ingested ${data.chunks_ingested} chunks from ${data.source}.`
+          );
+          ingestText.value = "";
+          ingestFile.value = "";
+        } catch (err) {
+          setStatus(ingestStatus, err.message, true);
+        } finally {
+          ingestBtn.disabled = false;
+        }
+      });
+
+      queryBtn.addEventListener("click", async () => {
+        setStatus(queryStatus, "Querying...");
+        queryBtn.disabled = true;
+        answerOutput.textContent = "";
+        sources.innerHTML = "";
+
+        try {
+          const response = await fetch(`${apiBase.value}/api/query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question.value.trim() }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "Query failed.");
+          }
+
+          const data = await response.json();
+          answerOutput.textContent = data.answer || "No answer returned.";
+
+          if (data.sources && data.sources.length) {
+            data.sources.forEach((src, idx) => {
+              const card = document.createElement("div");
+              card.className = "source-card";
+              const title = document.createElement("h3");
+              title.textContent = `Source ${idx + 1}`;
+              const meta = document.createElement("p");
+              meta.textContent =
+                `source: ${src.source || "unknown"} | ` +
+                `chunk: ${src.chunk_index ?? "n/a"}`;
+              const content = document.createElement("p");
+              content.textContent = src.content;
+              card.appendChild(title);
+              card.appendChild(meta);
+              card.appendChild(content);
+              sources.appendChild(card);
+            });
+          }
+
+          setStatus(queryStatus, "Done.");
+        } catch (err) {
+          setStatus(queryStatus, err.message, true);
+        } finally {
+          queryBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
