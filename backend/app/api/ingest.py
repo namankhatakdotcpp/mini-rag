@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from sqlalchemy.orm import Session
-from app.core.database import retrieve_top_chunks
+
 from sqlalchemy import text
 
 from app.db.client import get_db
