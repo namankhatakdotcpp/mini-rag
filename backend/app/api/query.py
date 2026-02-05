@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from app.services.embedding import generate_embedding
+from app.services.llm import generate_answer
+from app.core.database import retrieve_top_chunks  # Assuming this function exists
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
