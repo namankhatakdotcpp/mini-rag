@@ -138,15 +138,12 @@ async def ingest(
 
         return {
             "status": "ok",
-            "chunks": int(len(chunks)) if chunks else 0,
-            "chunks_ingested": int(len(chunks)) if chunks else 0,
+            "chunks": int(len(chunks)),
+            "chunks_ingested": int(len(chunks)),
             "sources": []
         }
-    except Exception:
+
+    except Exception as e:
+        print("INGEST ERROR:", str(e))
         db.rollback()
-        return {
-            "status": "ok",
-            "chunks": 0,
-            "chunks_ingested": 0,
-            "sources": []
-        }
+        raise HTTPException(status_code=500, detail=str(e))
