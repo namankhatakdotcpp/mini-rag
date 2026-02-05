@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import os
 import requests
-from fastapi import HTTPException
 from typing import List
 
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
@@ -52,7 +51,7 @@ def generate_answer(question: str, context_chunks: List[str]) -> str:
             raise HTTPException(status_code=500, detail="Invalid response format from answer generation service.")
     except requests.exceptions.RequestException:
         raise HTTPException(status_code=500, detail="Answer generation service unavailable.")
-from app.core.database import retrieve_top_chunks  # Assuming this function exists
+
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
