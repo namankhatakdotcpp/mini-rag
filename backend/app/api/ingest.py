@@ -7,6 +7,7 @@ from sqlalchemy import text
 from app.db.client import get_db
 from app.services.chunker import TextChunker
 from app.services.embedder import Embedder
+from sqlalchemy import text
 
 router = APIRouter()
 
@@ -20,6 +21,20 @@ async def ingest(
 ):
     """
     Ingest text or file content into the vector database.
+
+    # Clear old embeddings before new ingestion
+    try:
+        db.execute(text("DELETE FROM documents"))
+        db.commit()
+    except Exception:
+        db.rollback()
+        return {
+            "status": "ok",
+            "message": "Failed to clear old embeddings.",
+            "chunks": 0,
+            "chunks_ingested": 0,
+            "sources": []
+        }
 
     Why Form/File?
     - FastAPI requires explicit Form() for multipart/form-data fields
