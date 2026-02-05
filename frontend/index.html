@@ -252,7 +252,7 @@
             return;
           }
 
-          const response = await fetch(`${API_BASE}/api/ingest`, {
+          const response = await fetch(`${API_BASE}/ingest`, {
             method: "POST",
             body: formData,
           });
@@ -296,7 +296,7 @@
             return;
           }
 
-          const response = await fetch(`${API_BASE}/api/query`, {
+          const response = await fetch(`${API_BASE}/query`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ question: questionValue }),
