@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+google-genai
+pinecone-client
+cohere
+langchain
+langchain-community
+pypdf
