@@ -1,44 +1,223 @@
-# 🚀 Mini RAG System (Production-Style)
+# 🚀 Mini RAG — Production-Grade Retrieval Augmented Generation System
 
-A full-stack Retrieval-Augmented Generation (RAG) system built using modern LLM infrastructure.  
-This project demonstrates how real-world AI systems retrieve, rank, and generate grounded responses from custom data.
+A full-stack **production-style Retrieval-Augmented Generation (RAG)** system that enables grounded question answering over custom documents using modern LLM infrastructure.
 
-## 🔥 Features
-- Upload documents or text
-- Chunking + embedding pipeline
-- Vector search using Pinecone
-- Reranking using Cohere
-- Grounded answer generation using Gemini
-- FastAPI backend + interactive frontend
-- Source-aware responses (no hallucinations)
+This project demonstrates how real-world AI systems like **ChatGPT Retrieval, Perplexity AI, and enterprise copilots** are built.
 
-## 🧠 Tech Stack
-- FastAPI (backend)
-- Gemini API (LLM + embeddings)
-- Pinecone (vector database)
-- Cohere (reranking)
-- HTML/CSS/JS frontend
-- Render + Vercel deployment
+---
 
-## ⚙️ How it works
-1. User uploads text/document
-2. Text is chunked and embedded
-3. Stored in Pinecone vector DB
-4. User asks question
-5. Relevant chunks retrieved
-6. Cohere reranks context
-7. Gemini generates grounded answer
+# 🧠 System Overview
 
-## 🎯 Use Cases
-- AI document search engine
-- Chat with PDFs
-- Knowledge base assistant
-- Internal company AI chatbot
+Traditional LLMs hallucinate.
+This system eliminates hallucinations by retrieving real context before generating answers.
 
-## 🏆 Why this project matters
-Most chatbots hallucinate.  
-This system retrieves real data first and then generates answers — just like production AI systems at OpenAI, Google, and Perplexity.
+### Pipeline
 
-## 👨‍💻 Author
-Naman  
-AI/ML + Full Stack Developer  
+```
+User Query
+   ↓
+Embedding (Gemini)
+   ↓
+Vector Search (Pinecone)
+   ↓
+Reranking (Cohere)
+   ↓
+Grounded Generation (Gemini)
+   ↓
+Answer + Sources
+```
+
+---
+
+# ✨ Features
+
+### 🔹 Document Ingestion
+
+* Upload text or files
+* Smart chunking with overlap
+* Metadata tracking for sources
+
+### 🔹 Vector Retrieval
+
+* Semantic search via Pinecone
+* Cosine similarity matching
+* Top-K context retrieval
+
+### 🔹 Reranking Layer
+
+* Cohere rerank model
+* Improves relevance before generation
+* Production-style search pipeline
+
+### 🔹 Grounded Answer Generation
+
+* Gemini LLM
+* Uses retrieved context only
+* Prevents hallucinations
+* Source-aware answers
+
+### 🔹 Full Stack System
+
+* FastAPI backend
+* Interactive frontend console
+* Real-time ingestion and querying
+* Deploy-ready architecture
+
+---
+
+# 🏗️ Tech Stack
+
+## AI/ML
+
+* Gemini API (LLM + embeddings)
+* Pinecone (vector database)
+* Cohere (reranking)
+
+## Backend
+
+* FastAPI
+* Python
+
+## Frontend
+
+* HTML/CSS/JS
+
+## Deployment
+
+* Render (backend)
+* Vercel (frontend)
+* GitHub
+
+---
+
+# ⚙️ Architecture (Production Style)
+
+## Ingestion Pipeline
+
+1. Document → chunking
+2. Chunk → embedding
+3. Embedding → vector DB
+4. Metadata stored with vectors
+
+## Query Pipeline
+
+1. Query → embedding
+2. Vector search (top-k)
+3. Cohere rerank
+4. Context construction
+5. LLM generation
+
+## Grounded Response
+
+* Uses retrieved context only
+* Returns answer with sources
+* Prevents hallucinations
+
+---
+
+# 🧪 Example Use Cases
+
+* Chat with PDFs
+* AI research assistant
+* Internal company knowledge bot
+* Customer support AI
+* Documentation search engine
+
+---
+
+# 📊 Why This Project Matters
+
+Most AI demos = simple chatbot calls.
+
+This project replicates **real-world LLM infrastructure**:
+
+| Feature                 | Basic Chatbot | This Project |
+| ----------------------- | ------------- | ------------ |
+| Vector search           | ❌             | ✅            |
+| RAG pipeline            | ❌             | ✅            |
+| Reranking               | ❌             | ✅            |
+| Grounded answers        | ❌             | ✅            |
+| Production architecture | ❌             | ✅            |
+
+Used in systems like:
+
+* OpenAI retrieval stack
+* Perplexity AI
+* Google Gemini search
+* Enterprise AI copilots
+
+---
+
+# 🧑‍💻 How to Run Locally
+
+### Clone repo
+
+```
+git clone https://github.com/namankhatakdotcpp/mini-rag
+cd mini-rag
+```
+
+### Create environment
+
+```
+python -m venv venv
+source venv/bin/activate
+```
+
+### Install dependencies
+
+```
+pip install -r requirements.txt
+```
+
+### Add API keys (.env)
+
+```
+GEMINI_API_KEY=
+PINECONE_API_KEY=
+COHERE_API_KEY=
+PINECONE_INDEX=mini-rag
+```
+
+### Run server
+
+```
+python main.py
+```
+
+Open browser:
+
+```
+http://localhost:8000
+```
+
+---
+
+# 🧠 Engineering Highlights
+
+* Retrieval-first architecture
+* Modular RAG pipeline
+* Grounded answer generation
+* Vector DB integration
+* Production-style design
+
+---
+
+# 🏆 Resume Value
+
+Demonstrates:
+
+* Applied LLM engineering
+* Vector databases
+* RAG architecture
+* Full-stack AI system design
+* Production deployment thinking
+
+---
+
+# 👨‍💻 Author
+
+**Naman**
+AI/ML Engineer | Full Stack Developer
+
+Built to demonstrate real-world LLM infrastructure and production RAG pipelines.
