@@ -6,4 +6,5 @@ pinecone-client
 cohere
 langchain
 langchain-community
+python-multipart
 pypdf
