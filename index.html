@@ -451,6 +451,31 @@
         padding: 12px;
         border: 1px solid rgba(124, 231, 255, 0.12);
       }
+      .chat-box{
+  height:400px;
+  overflow-y:auto;
+  background:#0d0f1a;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:10px;
+}
+
+.msg{
+  padding:10px 14px;
+  margin:8px 0;
+  border-radius:10px;
+  max-width:80%;
+}
+
+.user{
+  background:#6c63ff;
+  margin-left:auto;
+}
+
+.bot{
+  background:#1f2435;
+}
+
     </style>
   </head>
 
@@ -466,7 +491,7 @@
       <section class="panel">
         <h2>Ingest Content</h2>
         <textarea id="ingestText" placeholder="Paste text..."></textarea>
-        <input type="file" id="ingestFile" />
+        <input type="file" id="ingestFile" multiple />
         <button class="button" id="ingestBtn">Ingest</button>
         <div class="status" id="ingestStatus"></div>
       </section>
@@ -476,8 +501,11 @@
         <h2>Ask Question</h2>
         <textarea id="question" placeholder="Ask something..."></textarea>
         <button class="button" id="queryBtn">Run Query</button>
-        <div class="status" id="queryStatus"></div>
         <div class="output" id="answerOutput"></div>
+        <div class="status" id="queryStatus"></div>
+        <!-- NEW: ChatGPT chat UI -->
+        <div class="chat-box" id="chatBox"></div>
+
         <div class="sources" id="sources"></div>
       </section>
 
@@ -505,6 +533,18 @@
       };
 
       /* INGEST LOGIC */
+      let chatHistory = [];
+const chatBox = document.getElementById("chatBox");
+
+function addMessage(text, type){
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+
       ingestBtn.onclick = async () => {
       setStatus(ingestStatus, "Ingesting...");
       try {
@@ -514,7 +554,11 @@
 
           // These keys ('text' and 'file') must match your main.py @app.post("/upload")
           if (text) formData.append("text", text);
-          if (file) formData.append("file", file);
+          const files = document.getElementById("ingestFile").files;
+          for (let f of files){
+            formData.append("file", f);
+          }
+
 
         const res = await fetch(`${API_BASE}/upload`, { // Matches @app.post("/upload")
           method: "POST",
@@ -536,6 +580,8 @@
 
   try {
     const q = document.getElementById("question").value.trim();
+    addMessage(q,"user"); // show user message
+
 
     const formData = new FormData();
     formData.append("question", q);
@@ -548,7 +594,10 @@
     const data = await safeJson(res);
 
     // 🧠 Answer
-    answerOutput.textContent = data?.answer || "No answer";
+    const answer = data?.answer || "No answer";
+    addMessage(answer,"bot");
+    chatHistory.push({question:q, answer:answer});
+
 
     // 📚 Context / sources
     if (data?.context) {
