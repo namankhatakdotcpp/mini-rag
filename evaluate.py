@@ -98,16 +98,22 @@ def _evaluate_config(
                 hits_at[k] += 1
 
         if verbose:
+            seen: set[tuple] = set()
+            deduped_sources: list[str] = []
+            for c in top5:
+                key = (c["book_name"], c["page_number"])
+                if key not in seen:
+                    seen.add(key)
+                    score = c.get("rerank_score") or c.get("dense_score", 0)
+                    deduped_sources.append(
+                        f"{c['book_name']} p{c['page_number']} (score={score:.3f})"
+                    )
             per_question.append({
                 "question":      query,
                 "expected_book": expected_book,
                 "expected_page": expected_page,
                 "hit_rank":      hit_rank,
-                "top5_sources": [
-                    f"{c['book_name']} p{c['page_number']}"
-                    f" (score={c.get('rerank_score') or c.get('dense_score', 0):.3f})"
-                    for c in top5
-                ],
+                "top5_sources":  deduped_sources,
             })
 
     n = len(questions)
