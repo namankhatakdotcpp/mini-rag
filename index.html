@@ -1,357 +1,9 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Mini RAG Console</title>
-    <style>
-      :root {
-        --bg: #0f1221;
-        --panel: #161a2e;
-        --panel-accent: #1f2440;
-        --text: #e9ecf8;
-        --muted: #aab1d1;
-        --accent: #7ce7ff;
-        --accent-2: #f4b7ff;
-        --danger: #ff7a7a;
-        --success: #7dffb3;
-        --shadow: 0 18px 40px rgba(7, 10, 24, 0.4);
-        --radius: 16px;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        background: radial-gradient(circle at top, #1c2144 0%, #0f1221 60%);
-        color: var(--text);
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        min-height: 100vh;
-      }
-
-      header {
-        padding: 36px 24px 18px;
-        text-align: center;
-      }
-
-      header h1 {
-        margin: 0 0 8px;
-        font-size: clamp(28px, 4vw, 42px);
-        letter-spacing: -0.02em;
-      }
-
-      header p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 15px;
-      }
-
-      .container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 0 24px 48px;
-        display: grid;
-        gap: 24px;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      }
-
-      .panel {
-        background: linear-gradient(160deg, var(--panel), var(--panel-accent));
-        border-radius: var(--radius);
-        padding: 22px;
-        box-shadow: var(--shadow);
-        border: 1px solid rgba(124, 231, 255, 0.12);
-      }
-
-      .panel h2 {
-        margin: 0 0 12px;
-        font-size: 20px;
-      }
-
-      label {
-        display: block;
-        font-size: 13px;
-        color: var(--muted);
-        margin-bottom: 6px;
-      }
-
-      input[type="text"],
-      textarea {
-        width: 100%;
-        padding: 12px 14px;
-        border-radius: 12px;
-        border: 1px solid rgba(124, 231, 255, 0.2);
-        background: rgba(15, 18, 33, 0.9);
-        color: var(--text);
-        font-family: inherit;
-      }
-
-      textarea {
-        min-height: 140px;
-        resize: vertical;
-      }
-
-      .row {
-        display: grid;
-        gap: 16px;
-        margin-top: 12px;
-      }
-
-      .button {
-        margin-top: 16px;
-        padding: 12px 16px;
-        border-radius: 999px;
-        background: linear-gradient(120deg, var(--accent), var(--accent-2));
-        border: none;
-        font-weight: 600;
-        cursor: pointer;
-        color: #0f1221;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-        box-shadow: 0 12px 24px rgba(124, 231, 255, 0.2);
-      }
-
-      .button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      .button:hover:not(:disabled) {
-        transform: translateY(-1px);
-      }
-
-      .status {
-        margin-top: 12px;
-        font-size: 14px;
-        color: var(--muted);
-      }
-
-      .status.error {
-        color: var(--danger);
-      }
-
-      .status.success {
-        color: var(--success);
-      }
-
-      .output {
-        margin-top: 16px;
-        padding: 16px;
-        background: rgba(9, 12, 24, 0.7);
-        border-radius: 12px;
-        font-size: 14px;
-        white-space: pre-wrap;
-      }
-
-      .sources {
-        margin-top: 16px;
-        display: grid;
-        gap: 12px;
-      }
-
-      .source-card {
-        background: rgba(9, 12, 24, 0.7);
-        border-radius: 12px;
-        padding: 12px;
-        border: 1px solid rgba(124, 231, 255, 0.12);
-      }
-
-      .source-card h3 {
-        margin: 0 0 6px;
-        font-size: 13px;
-        color: var(--accent);
-      }
-
-      .source-card p {
-        margin: 0;
-        font-size: 12px;
-        color: var(--muted);
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1>Mini RAG Console</h1>
-      <p>Ingest documents, ask questions, and get grounded answers.</p>
-    </header>
-
-    <main class="container">
-      <section class="panel">
-        <h2>Ingest Content</h2>
-        <label for="ingestText">Paste text</label>
-        <textarea id="ingestText" placeholder="Paste content to ingest..."></textarea>
-
-        <div class="row">
-          <div>
-            <label for="ingestFile">Or upload a file</label>
-            <input type="file" id="ingestFile" />
-          </div>
-        </div>
-
-        <button class="button" id="ingestBtn">Ingest</button>
-        <div class="status" id="ingestStatus"></div>
-      </section>
-
-      <section class="panel">
-        <h2>Ask a Question</h2>
-        <label for="question">Question</label>
-        <textarea id="question" placeholder="Ask something grounded in your documents..."></textarea>
-        <button class="button" id="queryBtn">Run Query</button>
-        <div class="status" id="queryStatus"></div>
-        <div class="output" id="answerOutput"></div>
-        <div class="sources" id="sources"></div>
-      </section>
-    </main>
-
-    <script>
-      const API_BASE = "https://mini-rag-gt3r.onrender.com";
-
-      const ingestText = document.getElementById("ingestText");
-      const ingestFile = document.getElementById("ingestFile");
-      const ingestBtn = document.getElementById("ingestBtn");
-      const ingestStatus = document.getElementById("ingestStatus");
-
-      const question = document.getElementById("question");
-      const queryBtn = document.getElementById("queryBtn");
-      const queryStatus = document.getElementById("queryStatus");
-      const answerOutput = document.getElementById("answerOutput");
-      const sources = document.getElementById("sources");
-
-      const setStatus = (el, message, type = "") => {
-        el.textContent = message;
-        el.classList.remove("error", "success");
-        if (type) el.classList.add(type);
-      };
-
-      const safeJson = async (response) => {
-        try {
-          return await response.json();
-        } catch {
-          return null;
-        }
-      };
-
-      ingestBtn.addEventListener("click", async () => {
-        setStatus(ingestStatus, "Ingesting...");
-        ingestBtn.disabled = true;
-
-        try {
-          const formData = new FormData();
-          const textValue = ingestText.value.trim();
-
-          if (textValue) {
-            formData.append("text_input", textValue);
-          }
-          if (ingestFile.files[0]) {
-            formData.append("file", ingestFile.files[0]);
-          }
-
-          if (![...formData.keys()].length) {
-            setStatus(ingestStatus, "Please provide text or a file.", "error");
-            return;
-          }
-
-          const response = await fetch(`${API_BASE}/api/ingest`, {
-            method: "POST",
-            body: formData,
-          });
-
-          const data = await safeJson(response);
-
-          if (!response.ok) {
-            throw new Error(data?.detail || "Ingest failed.");
-          }
-
-          const chunkCount =
-            data?.chunks_ingested ??
-            data?.chunks ??
-            0;
-          const sourceLabel = data?.source || data?.message || "input";
-
-          setStatus(
-            ingestStatus,
-            `Ingested ${chunkCount} chunks from ${sourceLabel}.`,
-            "success"
-          );
-          ingestText.value = "";
-          ingestFile.value = "";
-        } catch (err) {
-          setStatus(ingestStatus, err.message, "error");
-        } finally {
-          ingestBtn.disabled = false;
-        }
-      });
-
-      queryBtn.addEventListener("click", async () => {
-        setStatus(queryStatus, "Querying...");
-        queryBtn.disabled = true;
-        answerOutput.textContent = "";
-        sources.innerHTML = "";
-
-        try {
-          const questionValue = question.value.trim();
-          if (!questionValue) {
-            setStatus(queryStatus, "Please enter a question.", "error");
-            return;
-          }
-
-          const response = await fetch(`${API_BASE}/query`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: questionValue }),
-          });
-
-          const data = await safeJson(response);
-
-          if (!response.ok) {
-            throw new Error(data?.detail || "Query failed.");
-          }
-
-          answerOutput.textContent = data?.answer || "No answer returned.";
-
-          if (data?.sources && data.sources.length) {
-            data.sources.forEach((src, idx) => {
-              const card = document.createElement("div");
-              card.className = "source-card";
-
-              const title = document.createElement("h3");
-              title.textContent = `Source ${idx + 1}`;
-
-              const meta = document.createElement("p");
-              meta.textContent =
-                `source: ${src.source || "unknown"} | ` +
-                `chunk: ${src.chunk_index ?? "n/a"}`;
-
-              const content = document.createElement("p");
-              content.textContent = src.content;
-
-              card.appendChild(title);
-              card.appendChild(meta);
-              card.appendChild(content);
-              sources.appendChild(card);
-            });
-          }
-
-          setStatus(queryStatus, "Done.", "success");
-        } catch (err) {
-          setStatus(queryStatus, err.message, "error");
-        } finally {
-          queryBtn.disabled = false;
-        }
-      });
-    </script>
-  </body>
-</html> -->
-
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mini RAG Console</title>
-
     <style>
       :root {
         --bg: #0f1221;
@@ -367,10 +19,9 @@
         --radius: 16px;
       }
 
-      * { box-sizing: border-box; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
 
       body {
-        margin: 0;
         background: radial-gradient(circle at top, #1c2144 0%, #0f1221 60%);
         color: var(--text);
         font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -378,14 +29,12 @@
       }
 
       header { padding: 36px 24px 18px; text-align: center; }
-
       header h1 {
-        margin: 0 0 8px;
-        font-size: clamp(28px, 4vw, 42px);
+        font-size: clamp(26px, 4vw, 42px);
         letter-spacing: -0.02em;
+        margin-bottom: 8px;
       }
-
-      header p { margin: 0; color: var(--muted); font-size: 15px; }
+      header p { color: var(--muted); font-size: 15px; }
 
       .container {
         max-width: 1100px;
@@ -393,20 +42,29 @@
         padding: 0 24px 48px;
         display: grid;
         gap: 24px;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       }
 
       .panel {
         background: linear-gradient(160deg, var(--panel), var(--panel-accent));
         border-radius: var(--radius);
-        padding: 22px;
+        padding: 24px;
         box-shadow: var(--shadow);
         border: 1px solid rgba(124, 231, 255, 0.12);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
       }
+      .panel h2 { font-size: 18px; color: var(--accent); }
 
-      .panel h2 { margin: 0 0 12px; font-size: 20px; }
-
-      label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      label {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
 
       textarea {
         width: 100%;
@@ -416,217 +74,447 @@
         background: rgba(15, 18, 33, 0.9);
         color: var(--text);
         font-family: inherit;
-        min-height: 140px;
+        font-size: 14px;
+        resize: vertical;
       }
+      textarea:focus { outline: none; border-color: rgba(124, 231, 255, 0.6); }
 
-      .button {
-        margin-top: 16px;
-        padding: 12px 16px;
+      /* File drop zone */
+      .file-drop {
+        position: relative;
+        border: 2px dashed rgba(124, 231, 255, 0.25);
+        border-radius: 12px;
+        padding: 18px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s;
+      }
+      .file-drop:hover { border-color: var(--accent); }
+      .file-drop input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+      .file-drop p { font-size: 13px; color: var(--muted); pointer-events: none; }
+      .file-drop p span { color: var(--accent); }
+      .file-name { font-size: 12px; color: var(--accent-2); min-height: 18px; margin-top: 4px; }
+
+      .btn {
+        padding: 12px 20px;
         border-radius: 999px;
         background: linear-gradient(120deg, var(--accent), var(--accent-2));
         border: none;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 14px;
         cursor: pointer;
         color: #0f1221;
+        transition: opacity 0.15s, transform 0.15s;
+        box-shadow: 0 8px 20px rgba(124, 231, 255, 0.2);
       }
+      .btn:hover:not(:disabled) { transform: translateY(-1px); }
+      .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-      .status { margin-top: 12px; font-size: 14px; color: var(--muted); }
-      .status.error { color: var(--danger); }
+      .status { font-size: 13px; color: var(--muted); min-height: 18px; }
+      .status.error   { color: var(--danger); }
       .status.success { color: var(--success); }
 
-      .output {
-        margin-top: 16px;
-        padding: 16px;
+      /* Chat box */
+      .chat-box {
         background: rgba(9, 12, 24, 0.7);
+        border-radius: 12px;
+        padding: 14px;
+        min-height: 180px;
+        max-height: 380px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .chat-empty {
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+        margin: auto;
+      }
+
+      .bubble {
+        padding: 10px 14px;
         border-radius: 12px;
         font-size: 14px;
+        line-height: 1.55;
+        max-width: 92%;
         white-space: pre-wrap;
+        word-break: break-word;
       }
+      .bubble.user {
+        background: linear-gradient(120deg, rgba(124, 231, 255, 0.12), rgba(244, 183, 255, 0.12));
+        border: 1px solid rgba(124, 231, 255, 0.2);
+        align-self: flex-end;
+      }
+      .bubble.bot {
+        background: rgba(31, 36, 64, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        align-self: flex-start;
+      }
+      .bubble.thinking { color: var(--muted); font-style: italic; }
 
-      .sources { margin-top: 16px; display: grid; gap: 12px; }
+      /* Citations */
+      .section-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .citations { display: flex; flex-direction: column; gap: 10px; }
 
-      .source-card {
+      .cite-card {
         background: rgba(9, 12, 24, 0.7);
         border-radius: 12px;
-        padding: 12px;
-        border: 1px solid rgba(124, 231, 255, 0.12);
+        padding: 12px 14px;
+        border: 1px solid rgba(124, 231, 255, 0.1);
       }
-      .chat-box{
-  height:400px;
-  overflow-y:auto;
-  background:#0d0f1a;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:10px;
-}
+      .cite-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 4px;
+      }
+      .cite-book  { font-size: 13px; color: var(--accent); font-weight: 600; }
+      .cite-page  { font-size: 12px; color: var(--accent-2); white-space: nowrap; }
+      .cite-score { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+      .cite-preview { font-size: 12px; color: var(--muted); line-height: 1.5; }
 
-.msg{
-  padding:10px 14px;
-  margin:8px 0;
-  border-radius:10px;
-  max-width:80%;
-}
+      /* Active document chip */
+      .doc-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(124, 231, 255, 0.08);
+        border: 1px solid rgba(124, 231, 255, 0.25);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12px;
+        color: var(--accent);
+      }
+      .doc-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+      .doc-chip button {
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0;
+      }
+      .doc-chip button:hover { color: var(--danger); }
 
-.user{
-  background:#6c63ff;
-  margin-left:auto;
-}
+      /* Search-scope toggle */
+      .scope-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .scope-row input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+      .scope-row label { text-transform: none; font-size: 12px; cursor: pointer; }
 
-.bot{
-  background:#1f2435;
-}
-
+      /* Meta row */
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        background: rgba(9, 12, 24, 0.5);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .meta-row b { color: var(--text); }
     </style>
   </head>
 
   <body>
     <header>
       <h1>Mini RAG Console</h1>
-      <p>Ingest documents → Ask questions → Get grounded answers</p>
+      <p>Ingest documents &rarr; Ask questions &rarr; Get grounded answers with citations</p>
     </header>
 
     <main class="container">
 
-      <!-- INGEST -->
+      <!-- ── INGEST PANEL ── -->
       <section class="panel">
         <h2>Ingest Content</h2>
-        <textarea id="ingestText" placeholder="Paste text..."></textarea>
-        <input type="file" id="ingestFile" multiple />
-        <button class="button" id="ingestBtn">Ingest</button>
+
+        <div>
+          <label for="ingestText">Paste text</label>
+          <textarea id="ingestText" rows="5" placeholder="Paste content to ingest…"></textarea>
+        </div>
+
+        <div>
+          <label>Upload PDF or text file</label>
+          <div class="file-drop">
+            <input type="file" id="ingestFile" accept=".pdf,.txt,.md" multiple />
+            <p>Drop files here or <span>browse</span></p>
+          </div>
+          <div class="file-name" id="fileName"></div>
+        </div>
+
+        <button class="btn" id="ingestBtn">Ingest</button>
         <div class="status" id="ingestStatus"></div>
+        <div id="docChip" style="display:none" class="doc-chip">
+          <span class="dot"></span>
+          <span id="docChipLabel"></span>
+          <button id="clearDocBtn" title="Clear — search all documents">&times;</button>
+        </div>
       </section>
 
-      <!-- QUERY -->
+      <!-- ── QUERY PANEL ── -->
       <section class="panel">
-        <h2>Ask Question</h2>
-        <textarea id="question" placeholder="Ask something..."></textarea>
-        <button class="button" id="queryBtn">Run Query</button>
-        <div class="output" id="answerOutput"></div>
-        <div class="status" id="queryStatus"></div>
-        <!-- NEW: ChatGPT chat UI -->
-        <div class="chat-box" id="chatBox"></div>
+        <h2>Ask a Question</h2>
 
-        <div class="sources" id="sources"></div>
+        <div class="chat-box" id="chatBox">
+          <div class="chat-empty" id="chatEmpty">Answers will appear here</div>
+        </div>
+
+        <div>
+          <label for="question">Question <span style="color:var(--muted);font-size:10px;text-transform:none">(Enter to submit, Shift+Enter for newline)</span></label>
+          <textarea id="question" rows="3" placeholder="Ask something grounded in your documents…"></textarea>
+        </div>
+
+        <div class="scope-row" id="scopeRow" style="display:none">
+          <input type="checkbox" id="searchAllChk" />
+          <label for="searchAllChk">Search all documents (ignore active document filter)</label>
+        </div>
+
+        <button class="btn" id="queryBtn">Run Query</button>
+        <div class="status" id="queryStatus"></div>
+
+        <div id="citationsWrap" style="display:none; flex-direction:column; gap:10px">
+          <div class="section-label">Sources</div>
+          <div class="citations" id="citationsList"></div>
+          <div class="meta-row" id="metaRow" style="display:none"></div>
+        </div>
       </section>
 
     </main>
 
     <script>
-      const API_BASE = "https://mini-rag-gt3r.onrender.com";
+      // Relative paths work when FastAPI is serving this page (same origin).
+      // Fall back to an explicit address for file:// and any other dev server port.
+      const API_BASE = (window.location.port === "8000" || window.location.protocol === "https:")
+        ? ""
+        : "http://127.0.0.1:8000";
 
-      const ingestBtn = document.getElementById("ingestBtn");
-      const queryBtn = document.getElementById("queryBtn");
+      const ingestText    = document.getElementById("ingestText");
+      const ingestFile    = document.getElementById("ingestFile");
+      const ingestBtn     = document.getElementById("ingestBtn");
+      const ingestStatus  = document.getElementById("ingestStatus");
+      const fileNameEl    = document.getElementById("fileName");
+      const docChip       = document.getElementById("docChip");
+      const docChipLabel  = document.getElementById("docChipLabel");
+      const clearDocBtn   = document.getElementById("clearDocBtn");
 
-      const ingestStatus = document.getElementById("ingestStatus");
-      const queryStatus = document.getElementById("queryStatus");
-      const answerOutput = document.getElementById("answerOutput");
-      const sources = document.getElementById("sources");
+      const questionEl    = document.getElementById("question");
+      const queryBtn      = document.getElementById("queryBtn");
+      const queryStatus   = document.getElementById("queryStatus");
+      const chatBox       = document.getElementById("chatBox");
+      const chatEmpty     = document.getElementById("chatEmpty");
+      const citationsWrap = document.getElementById("citationsWrap");
+      const citationsList = document.getElementById("citationsList");
+      const metaRow       = document.getElementById("metaRow");
+      const scopeRow      = document.getElementById("scopeRow");
+      const searchAllChk  = document.getElementById("searchAllChk");
 
-      const setStatus = (el, msg, type="") => {
+      // Tracks the document_id returned by the last successful upload.
+      // Sent with every query so retrieval stays scoped to that document.
+      let activeDocId  = null;
+      let activeSource = null;
+
+      const setActiveDoc = (docId, source) => {
+        activeDocId  = docId;
+        activeSource = source;
+        if (docId) {
+          docChipLabel.textContent = source;
+          docChip.style.display    = "inline-flex";
+          scopeRow.style.display   = "flex";
+        } else {
+          docChip.style.display  = "none";
+          scopeRow.style.display = "none";
+          searchAllChk.checked   = false;
+        }
+      };
+
+      clearDocBtn.addEventListener("click", () => setActiveDoc(null, null));
+
+      // ── Helpers ──────────────────────────────────────────────────────────────
+
+      const setStatus = (el, msg, type = "") => {
         el.textContent = msg;
-        el.className = "status " + type;
+        el.className = "status" + (type ? " " + type : "");
       };
 
-      const safeJson = async (r) => {
-        try { return await r.json(); }
-        catch { return null; }
+      const safeJson = async (res) => {
+        try { return await res.json(); } catch { return null; }
       };
 
-      /* INGEST LOGIC */
-      let chatHistory = [];
-const chatBox = document.getElementById("chatBox");
+      const addBubble = (text, cls) => {
+        chatEmpty.style.display = "none";
+        const el = document.createElement("div");
+        el.className = "bubble " + cls;
+        el.textContent = text;
+        chatBox.appendChild(el);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return el;
+      };
 
-function addMessage(text, type){
-  const div = document.createElement("div");
-  div.className = "msg " + type;
-  div.textContent = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
+      // ── File input label ─────────────────────────────────────────────────────
 
+      ingestFile.addEventListener("change", () => {
+        const names = [...ingestFile.files].map(f => f.name).join(", ");
+        fileNameEl.textContent = names;
+      });
 
-      ingestBtn.onclick = async () => {
-      setStatus(ingestStatus, "Ingesting...");
-      try {
-        const formData = new FormData();
-        const text = document.getElementById("ingestText").value.trim();
-        const file = document.getElementById("ingestFile").files[0];
+      // ── Ingest ───────────────────────────────────────────────────────────────
 
-          // These keys ('text' and 'file') must match your main.py @app.post("/upload")
-          if (text) formData.append("text", text);
-          const files = document.getElementById("ingestFile").files;
-          for (let f of files){
-            formData.append("file", f);
+      ingestBtn.addEventListener("click", async () => {
+        const text  = ingestText.value.trim();
+        const files = ingestFile.files;
+
+        if (!text && !files.length) {
+          setStatus(ingestStatus, "Provide text or select a file.", "error");
+          return;
+        }
+
+        ingestBtn.disabled = true;
+        setStatus(ingestStatus, "Ingesting…");
+
+        try {
+          const fd = new FormData();
+          if (text) fd.append("text", text);
+          for (const f of files) fd.append("file", f);
+
+          const res  = await fetch(`${API_BASE}/upload`, { method: "POST", body: fd });
+          const data = await safeJson(res);
+
+          if (!res.ok) {
+            throw new Error(data?.detail || `Server error ${res.status}`);
           }
 
+          const n      = data?.chunks ?? 0;
+          const source = data?.source ?? "input";
+          setStatus(ingestStatus, `✓ Ingested ${n} chunks from "${source}".`, "success");
+          setActiveDoc(data?.document_id ?? null, source);
+          ingestText.value       = "";
+          ingestFile.value       = "";
+          fileNameEl.textContent = "";
+        } catch (err) {
+          setStatus(ingestStatus, err.message, "error");
+        } finally {
+          ingestBtn.disabled = false;
+        }
+      });
 
-        const res = await fetch(`${API_BASE}/upload`, { // Matches @app.post("/upload")
-          method: "POST",
-          body: formData,
-    });
+      // ── Query ────────────────────────────────────────────────────────────────
 
-    const data = await safeJson(res);
-    // Matches the return {"status": "success", "chunks": count} from main.py
-    setStatus(ingestStatus, `Ingested ${data?.chunks || 0} chunks`, "success");
+      const runQuery = async () => {
+        const q = questionEl.value.trim();
+        if (!q) {
+          setStatus(queryStatus, "Enter a question.", "error");
+          return;
+        }
 
-  } catch (e) {
-    setStatus(ingestStatus, "Ingest failed", "error");
-  }
-};
-      /* QUERY LOGIC */queryBtn.onclick = async () => {
-  setStatus(queryStatus, "Querying...");
-  answerOutput.textContent = "";
-  sources.innerHTML = "";
+        queryBtn.disabled = true;
+        citationsWrap.style.display = "none";
+        citationsList.innerHTML = "";
+        metaRow.style.display   = "none";
+        metaRow.innerHTML       = "";
 
-  try {
-    const q = document.getElementById("question").value.trim();
-    addMessage(q,"user"); // show user message
+        addBubble(q, "user");
+        const thinking = addBubble("Thinking…", "bot thinking");
+        setStatus(queryStatus, "Querying…");
 
+        try {
+          const fd = new FormData();
+          fd.append("question", q);
+          // Send document_id unless the user explicitly chose "search all"
+          if (activeDocId && !searchAllChk.checked) {
+            fd.append("document_id", activeDocId);
+          }
 
-    const formData = new FormData();
-    formData.append("question", q);
+          const res  = await fetch(`${API_BASE}/query`, { method: "POST", body: fd });
+          const data = await safeJson(res);
 
-    const res = await fetch(`${API_BASE}/query`, {
-      method: "POST",
-      body: formData,
-    });
+          if (!res.ok) {
+            throw new Error(data?.detail || `Server error ${res.status}`);
+          }
 
-    const data = await safeJson(res);
+          thinking.textContent = data?.answer || "No answer returned.";
+          thinking.classList.remove("thinking");
 
-    // 🧠 Answer
-    const answer = data?.answer || "No answer";
-    addMessage(answer,"bot");
-    chatHistory.push({question:q, answer:answer});
+          // ── Structured citations ──
+          const cites = data?.citations ?? [];
+          if (cites.length) {
+            citationsWrap.style.display = "flex";
+            cites.forEach((c, i) => {
+              const card = document.createElement("div");
+              card.className = "cite-card";
+              card.innerHTML = `
+                <div class="cite-header">
+                  <span class="cite-book">[${i + 1}] ${escHtml(c.book_name)}</span>
+                  <span class="cite-page">Page&nbsp;${c.page_number}</span>
+                </div>
+                <div class="cite-score">Relevance score: ${c.rerank_score != null ? c.rerank_score.toFixed(3) : "—"}</div>
+                <div class="cite-preview">${escHtml(c.preview ?? "")}</div>
+              `;
+              citationsList.appendChild(card);
+            });
+          }
 
+          // ── Metadata ──
+          const m = data?.meta;
+          if (m) {
+            metaRow.innerHTML = `
+              <span>&#9201; <b>${m.time}</b></span>
+              <span>&#128202; <b>${m.tokens ?? "—"}</b> tokens</span>
+              <span>&#129302; <b>${escHtml(m.model || "gemini")}</b></span>
+              <span>&#128196; <b>${m.chunks_retrieved}</b> chunks</span>
+            `;
+            metaRow.style.display = "flex";
+            citationsWrap.style.display = "flex";
+          }
 
-    // 📚 Context / sources
-    if (data?.context) {
-      const div = document.createElement("div");
-      div.className = "source-card";
-      div.innerHTML = `<h3>Retrieved Context</h3><p>${data.context.replace(/\n/g,"<br>")}</p>`;
-      sources.appendChild(div);
-    }
+          questionEl.value = "";
+          setStatus(queryStatus, "Done.", "success");
+        } catch (err) {
+          thinking.textContent = `Error: ${err.message}`;
+          thinking.classList.remove("thinking");
+          setStatus(queryStatus, err.message, "error");
+        } finally {
+          queryBtn.disabled = false;
+        }
+      };
 
-    // 💰 Metadata (INTERVIEW GOLD)
-    if (data?.meta) {
-      const metaDiv = document.createElement("div");
-      metaDiv.className = "source-card";
-      metaDiv.innerHTML = `
-        <h3>Query Stats</h3>
-        <p>⏱ Time: ${data.meta.time}</p>
-        <p>🧮 Tokens: ${data.meta.tokens}</p>
-        <p>💰 Cost: ${data.meta.cost}</p>
-      `;
-      sources.appendChild(metaDiv);
-    }
+      queryBtn.addEventListener("click", runQuery);
 
-    setStatus(queryStatus, "Done", "success");
+      questionEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          runQuery();
+        }
+      });
 
-  } catch (e) {
-    setStatus(queryStatus, "Query failed", "error");
-  }
-};
-
+      // ── XSS guard ────────────────────────────────────────────────────────────
+      const escHtml = (str) => str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     </script>
   </body>
 </html>
