@@ -13,6 +13,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,9 +41,10 @@ BM25_TOP_K: int      = int(os.getenv("BM25_TOP_K",    10))
 RERANK_TOP_N: int    = int(os.getenv("RERANK_TOP_N",  5))
 OCR_MIN_CHARS: int   = int(os.getenv("OCR_MIN_CHARS", 50))
 
-EMBED_MODEL: str     = os.getenv("EMBED_MODEL",    "BAAI/bge-small-en-v1.5")
-RERANK_MODEL: str    = os.getenv("RERANK_MODEL",   "cross-encoder/ms-marco-MiniLM-L-6-v2")
-LLM_PROVIDER: str    = os.getenv("LLM_PROVIDER",   "gemini").lower()
+EMBED_MODEL: str      = os.getenv("EMBED_MODEL",    "BAAI/bge-small-en-v1.5")
+RERANK_MODEL: str     = os.getenv("RERANK_MODEL",   "cross-encoder/ms-marco-MiniLM-L-6-v2")
+LLM_PROVIDER: str     = os.getenv("LLM_PROVIDER",   "gemini").lower()
+DISABLE_RERANKER: bool = os.getenv("DISABLE_RERANKER", "").lower() in ("1", "true", "yes")
 
 CHROMA_DIR: str      = os.getenv("CHROMA_DIR",     "./chroma_db")
 LOGS_DIR: str        = os.getenv("LOGS_DIR",        "./outputs")
@@ -75,14 +77,32 @@ except ImportError:
     logger.warning("pytesseract/Pillow not installed — OCR fallback disabled.")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# MODEL INITIALIZATION
+# MODEL INITIALIZATION  (lazy — loaded on first use so port binds before download)
 # ──────────────────────────────────────────────────────────────────────────────
 
-logger.info(f"Loading embedding model: {EMBED_MODEL}")
-embed_model = SentenceTransformer(EMBED_MODEL)
+_model_lock: threading.Lock = threading.Lock()
+_embed_model: Optional[SentenceTransformer] = None
+_cross_encoder_model: Optional[CrossEncoder] = None
 
-logger.info(f"Loading cross-encoder: {RERANK_MODEL}")
-cross_encoder = CrossEncoder(RERANK_MODEL)
+
+def _get_embed_model() -> SentenceTransformer:
+    global _embed_model
+    if _embed_model is None:
+        with _model_lock:
+            if _embed_model is None:
+                logger.info(f"Loading embedding model: {EMBED_MODEL}")
+                _embed_model = SentenceTransformer(EMBED_MODEL)
+    return _embed_model
+
+
+def _get_cross_encoder() -> CrossEncoder:
+    global _cross_encoder_model
+    if _cross_encoder_model is None:
+        with _model_lock:
+            if _cross_encoder_model is None:
+                logger.info(f"Loading cross-encoder: {RERANK_MODEL}")
+                _cross_encoder_model = CrossEncoder(RERANK_MODEL)
+    return _cross_encoder_model
 
 # ──────────────────────────────────────────────────────────────────────────────
 # CHROMADB
@@ -265,7 +285,7 @@ def _upsert_chunks(chunks: list[dict[str, Any]], document_id: str) -> None:
     exceed this in a single call, so we split into _CHROMA_BATCH-sized batches.
     """
     texts = [c["text"] for c in chunks]
-    embeddings = embed_model.encode(
+    embeddings = _get_embed_model().encode(
         texts,
         batch_size=64,
         show_progress_bar=len(chunks) > 50,
@@ -354,7 +374,7 @@ def _dense_search(
     n = collection.count()
     if n == 0:
         return []
-    q_emb  = embed_model.encode(query, normalize_embeddings=True).tolist()
+    q_emb  = _get_embed_model().encode(query, normalize_embeddings=True).tolist()
     kwargs: dict[str, Any] = {
         "query_embeddings": [q_emb],
         "n_results":        min(top_k, n),
@@ -452,8 +472,12 @@ def rerank_chunks(
     """
     if not chunks:
         return []
+    if DISABLE_RERANKER:
+        for c in chunks:
+            c["rerank_score"] = c.get("dense_score", 0.0)
+        return sorted(chunks, key=lambda x: x["rerank_score"], reverse=True)[:top_n]
     pairs  = [[query, c["text"]] for c in chunks]
-    scores = cross_encoder.predict(pairs)
+    scores = _get_cross_encoder().predict(pairs)
     for c, s in zip(chunks, scores):
         c["rerank_score"] = round(float(s), 4)
     return sorted(chunks, key=lambda x: x["rerank_score"], reverse=True)[:top_n]

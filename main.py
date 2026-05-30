@@ -8,7 +8,9 @@ Endpoints:
   POST /query     → RAG query, returns answer + structured citations
 """
 
+import asyncio
 import shutil
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List, Optional
 
@@ -17,9 +19,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+import rag_engine
 from rag_engine import ingest_pdf, ingest_text, get_answer, get_document_id
 
-app = FastAPI(title="Mini RAG API", version="2.0.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Port is already bound by the time lifespan runs, so model downloads
+    # won't block Render's port-scan health check.
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, rag_engine._get_embed_model)
+    if not rag_engine.DISABLE_RERANKER:
+        loop.run_in_executor(None, rag_engine._get_cross_encoder)
+    yield
+
+
+app = FastAPI(title="Mini RAG API", version="2.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
