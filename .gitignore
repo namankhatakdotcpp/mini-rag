@@ -1,0 +1,35 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Local vector store (regenerate by re-ingesting PDFs)
+chroma_db/
+
+# Query logs and evaluation outputs (generated at runtime)
+outputs/
+
+# Raw uploads
+uploads/
+
+# PDF textbooks (large binary files — add your own)
+data/pdfs/
+
+# IDE
+.vscode/
+.idea/
+*.swp

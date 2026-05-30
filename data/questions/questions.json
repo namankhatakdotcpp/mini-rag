@@ -1,0 +1,86 @@
+[
+  {
+    "question": "How far in advance of a new athletic season should the initial preparticipation physical evaluation be performed?",
+    "expected_page": 14,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — '4 to 6 weeks before' appears on p14 only."
+  },
+  {
+    "question": "What cardiac conditions are listed as contraindications for sports participation in the preparticipation evaluation?",
+    "expected_page": 17,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — 'Long QT syndromes' unique to p17. p200 is book index only."
+  },
+  {
+    "question": "What are the absolute contraindications to participation in contact sports?",
+    "expected_page": 19,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — 'History of craniotomy' unique to p19."
+  },
+  {
+    "question": "What cognitive and behavioral features are listed in Table 2.6 for acute concussion?",
+    "expected_page": 28,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — 'Cognitive features' unique to p28. Table 2.6 header and data on same page."
+  },
+  {
+    "question": "What is second impact syndrome and why is it considered dangerous for athletes?",
+    "expected_page": 31,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — Full definition sentence unique to p31. pp32-33 do not mention SIS."
+  },
+  {
+    "question": "What are the typical symptoms and duration of cervical cord neurapraxia with transient tetraplegia?",
+    "expected_page": 56,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — 'tetraplegia' on pp51,56,199. p51 is chapter intro, p199 is index. Duration (10-15 min to 48h) uniquely on p56."
+  },
+  {
+    "question": "What does the TUBS acronym represent in the classification of traumatic shoulder instability?",
+    "expected_page": 66,
+    "book": "GRANT COOPER",
+    "_validation": "MODIFIED — Original asked about treatment too. TUBS appears on pp66-67. The acronym expansion (traumatic, unidirectional, Bankart, surgery) is on p66 only. Treatment detail spans p67. Question narrowed to definition to eliminate false negative risk."
+  },
+  {
+    "question": "What is infrapatellar tendonitis, what is its common name, and in which sports does it most commonly occur?",
+    "expected_page": 153,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — 'infrapatellar tendonitis' AND 'jumper' co-occur on p153 only. p157 has only a reference citation; p142 has 'infrapatellar tendon' (anatomy) not tendonitis."
+  },
+  {
+    "question": "What categories of substances are prohibited at all times according to the WADA guidelines in the banned substances chapter?",
+    "expected_page": 194,
+    "book": "GRANT COOPER",
+    "_validation": "PASS — 'Anabolic agents' in WADA list context unique to p194."
+  },
+  {
+    "question": "What is myositis ossificans, how does it occur in muscle injuries, and when does it become visible on X-ray?",
+    "expected_page": 51,
+    "book": "Brukner and Khan",
+    "_validation": "PASS — '10 to 14 days' X-ray timing unique to p51 across full CSM book."
+  },
+  {
+    "question": "What are the three distinct challenges that overuse injuries present to the clinician?",
+    "expected_page": 53,
+    "book": "Brukner and Khan",
+    "_validation": "PASS — 'three distinct challenges' unique to p53."
+  },
+  {
+    "question": "How is tendinitis defined and why is the term considered a controversial diagnostic label?",
+    "expected_page": 60,
+    "book": "Brukner and Khan",
+    "_validation": "PASS — 'rarely been proven' unique to p60."
+  },
+  {
+    "question": "What is identified as the major reason for unsuccessful treatment of musculoskeletal pain?",
+    "expected_page": 65,
+    "book": "Brukner and Khan",
+    "_validation": "PASS — 'multifactorial nature' in this exact context unique to p65."
+  },
+  {
+    "question": "How does osteoid osteoma typically present and how can it be differentiated from a stress fracture on bone scan?",
+    "expected_page": 73,
+    "book": "Brukner and Khan",
+    "_validation": "PASS — 'isotope uptake' unique to p73 across all 1069 pages. 9 pages mention osteoid osteoma but only p73 has the bone scan differentiation detail."
+  }
+]

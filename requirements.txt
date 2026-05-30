@@ -1,0 +1,37 @@
+# Python 3.11 or 3.12 recommended.
+# Python 3.14 works but produces a pydantic v1 startup warning from langchain.
+
+# ── Server ────────────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+
+# ── PDF processing ────────────────────────────────────────────────────────────
+PyMuPDF>=1.24.0          # fitz: per-page text extraction
+pytesseract>=0.3.10      # OCR fallback for scanned pages (requires system Tesseract)
+Pillow>=10.0.0           # image rendering for OCR
+
+# ── Text splitting ────────────────────────────────────────────────────────────
+langchain-text-splitters>=0.2.0
+
+# ── Local embeddings + cross-encoder reranker (no API key required) ───────────
+sentence-transformers>=3.0.0
+# Downloads on first run:
+#   BAAI/bge-small-en-v1.5          (~130 MB, embedding model)
+#   cross-encoder/ms-marco-MiniLM-L-6-v2  (~80 MB, reranker)
+
+# ── Vector store ──────────────────────────────────────────────────────────────
+chromadb>=0.5.0           # local persistent store, no account required
+
+# ── Hybrid retrieval ──────────────────────────────────────────────────────────
+rank-bm25>=0.2.2
+numpy>=1.26.0
+
+# ── Evaluation & progress display ────────────────────────────────────────────
+tqdm>=4.66.0
+
+# ── LLM providers (uncomment / install the one you use) ──────────────────────
+google-genai>=1.0.0       # Gemini — set GEMINI_API_KEY in .env
+# openai>=1.30.0          # OpenAI — set OPENAI_API_KEY in .env
+# requests>=2.31.0        # local Ollama endpoint
