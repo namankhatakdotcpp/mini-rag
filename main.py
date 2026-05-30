@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from rag_engine import ingest_pdf, ingest_text, get_answer
+from rag_engine import ingest_pdf, ingest_text, get_answer, get_document_id
 
 app = FastAPI(title="Mini RAG API", version="2.0.0")
 
@@ -67,8 +67,9 @@ async def handle_upload(
     if not file and not text:
         raise HTTPException(status_code=400, detail="Provide a file or text to ingest.")
 
-    total_chunks = 0
-    last_source  = "manual_input"
+    total_chunks  = 0
+    last_source   = "manual_input"
+    last_doc_id   = get_document_id("manual_input")
 
     if file:
         for f in file:
@@ -90,30 +91,45 @@ async def handle_upload(
                 total_chunks += ingest_text(content, source_name)
 
             last_source = source_name
+            last_doc_id = get_document_id(source_name)
 
     if text and text.strip():
         total_chunks += ingest_text(text.strip(), "manual_input")
         last_source = "manual_input"
+        last_doc_id = get_document_id("manual_input")
 
-    return {"status": "success", "chunks": total_chunks, "source": last_source}
+    return {
+        "status":      "success",
+        "chunks":      total_chunks,
+        "source":      last_source,
+        "document_id": last_doc_id,
+    }
 
 
 @app.post("/query")
-async def handle_query(question: str = Form(...)) -> dict:
+async def handle_query(
+    question:    str           = Form(...),
+    document_id: Optional[str] = Form(default=None),
+) -> dict:
     """
     Full RAG pipeline: hybrid retrieval → rerank → grounded generation → cite.
 
-    Response fields (backward-compatible with existing frontend):
-      answer   — LLM-generated answer grounded in retrieved context
-      context  — human-readable citation context string for display
+    Pass document_id (returned by /upload) to restrict retrieval to a single
+    uploaded document. Omit it to search the entire collection.
+
+    Response fields:
+      answer    — LLM-generated answer grounded in retrieved context
+      context   — human-readable citation context string for display
       citations — structured list of {book_name, page_number, chunk_id, preview, score}
-      meta     — latency, token counts, model name, chunks retrieved
+      meta      — latency, token counts, model name, chunks retrieved
     """
     if not question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
+    doc_id = document_id.strip() if document_id and document_id.strip() else None
+
     try:
-        result = get_answer(question)
+        result = get_answer(question, document_id=doc_id)
     except Exception as exc:
         raise HTTPException(
             status_code=503,

@@ -248,7 +248,17 @@ def chunk_pages(pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
 _CHROMA_BATCH = 5000  # ChromaDB hard limit is 5461; stay safely below it
 
 
-def _upsert_chunks(chunks: list[dict[str, Any]]) -> None:
+def get_document_id(source_name: str) -> str:
+    """Deterministic, stable document ID derived from the source name.
+
+    Using MD5 of the source name keeps re-ingestion idempotent: the same PDF
+    always maps to the same document_id, so ChromaDB upserts update rather than
+    duplicate existing chunks.
+    """
+    return hashlib.md5(source_name.encode()).hexdigest()[:16]
+
+
+def _upsert_chunks(chunks: list[dict[str, Any]], document_id: str) -> None:
     """Embed and upsert chunks into ChromaDB in batches, then rebuild BM25.
 
     ChromaDB enforces a maximum batch size of 5461. Large books (1000+ pages)
@@ -274,6 +284,7 @@ def _upsert_chunks(chunks: list[dict[str, Any]]) -> None:
                     "book_name":   c["book_name"],
                     "page_number": c["page_number"],
                     "chunk_id":    c["chunk_id"],
+                    "document_id": document_id,
                 }
                 for c in batch
             ],
@@ -300,7 +311,8 @@ def ingest_pdf(pdf_path: str, book_name: Optional[str] = None) -> int:
         )
 
     chunks = chunk_pages(pages)
-    _upsert_chunks(chunks)
+    doc_id = get_document_id(name)
+    _upsert_chunks(chunks, doc_id)
 
     col_count = collection.count()
 
@@ -324,7 +336,7 @@ def ingest_text(text: str, source_name: str) -> int:
     """Ingest raw text (no PDF). Preserves backward compatibility with text uploads."""
     pages  = [{"book_name": source_name, "page_number": 1, "text": text}]
     chunks = chunk_pages(pages)
-    _upsert_chunks(chunks)
+    _upsert_chunks(chunks, get_document_id(source_name))
     logger.info(f"Ingested {len(chunks)} chunks from text source '{source_name}'")
     return len(chunks)
 
@@ -333,17 +345,28 @@ def ingest_text(text: str, source_name: str) -> int:
 # HYBRID RETRIEVAL
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _dense_search(query: str, top_k: int) -> list[dict[str, Any]]:
-    """ChromaDB cosine-similarity search. Returns up to top_k chunks."""
+def _dense_search(
+    query:       str,
+    top_k:       int,
+    document_id: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """ChromaDB cosine-similarity search. Optionally scoped to one document."""
     n = collection.count()
     if n == 0:
         return []
-    q_emb = embed_model.encode(query, normalize_embeddings=True).tolist()
-    result = collection.query(
-        query_embeddings=[q_emb],
-        n_results=min(top_k, n),
-        include=["documents", "metadatas", "distances"],
-    )
+    q_emb  = embed_model.encode(query, normalize_embeddings=True).tolist()
+    kwargs: dict[str, Any] = {
+        "query_embeddings": [q_emb],
+        "n_results":        min(top_k, n),
+        "include":          ["documents", "metadatas", "distances"],
+    }
+    if document_id:
+        kwargs["where"] = {"document_id": document_id}
+    try:
+        result = collection.query(**kwargs)
+    except Exception as exc:
+        logger.warning(f"Dense search error (document_id={document_id}): {exc}")
+        return []
     chunks = []
     for doc, meta, dist in zip(
         result["documents"][0],
@@ -355,37 +378,49 @@ def _dense_search(query: str, top_k: int) -> list[dict[str, Any]]:
             "book_name":   meta["book_name"],
             "page_number": meta["page_number"],
             "chunk_id":    meta["chunk_id"],
-            "dense_score": round(float(1.0 - dist), 4),  # cosine distance → similarity
+            "document_id": meta.get("document_id", ""),
+            "dense_score": round(float(1.0 - dist), 4),
         })
     return chunks
 
 
-def _bm25_search(query: str, top_k: int) -> list[dict[str, Any]]:
-    """BM25 keyword search. Catches exact term matches dense retrieval misses."""
+def _bm25_search(
+    query:       str,
+    top_k:       int,
+    document_id: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """BM25 keyword search. Optionally scoped to one document."""
     if _bm25 is None or not _bm25_chunks:
         return []
     scores  = _bm25.get_scores(query.lower().split())
-    top_idx = np.argsort(scores)[::-1][:top_k]
-    return [
-        {**_bm25_chunks[i], "bm25_score": round(float(scores[i]), 4)}
-        for i in top_idx
-        if scores[i] > 0
-    ]
+    top_idx = np.argsort(scores)[::-1]
+    results: list[dict[str, Any]] = []
+    for i in top_idx:
+        if scores[i] <= 0:
+            break
+        chunk = _bm25_chunks[i]
+        if document_id and chunk.get("document_id") != document_id:
+            continue
+        results.append({**chunk, "bm25_score": round(float(scores[i]), 4)})
+        if len(results) >= top_k:
+            break
+    return results
 
 
 def hybrid_retrieve(
-    query:   str,
-    dense_k: int = DENSE_TOP_K,
-    bm25_k:  int = BM25_TOP_K,
+    query:       str,
+    dense_k:     int = DENSE_TOP_K,
+    bm25_k:      int = BM25_TOP_K,
+    document_id: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """
     Merge dense and BM25 results, deduplicate by chunk_id.
 
-    Chunks found by both methods keep both scores — useful for debugging and
-    for future score-fusion strategies (e.g. Reciprocal Rank Fusion).
+    Pass document_id to restrict retrieval to a single uploaded document.
+    Omit it (or pass None) to search across the entire collection.
     """
-    dense  = _dense_search(query, dense_k)
-    sparse = _bm25_search(query, bm25_k)
+    dense  = _dense_search(query, dense_k, document_id)
+    sparse = _bm25_search(query, bm25_k, document_id)
 
     merged: dict[str, dict[str, Any]] = {}
     for c in dense:
@@ -609,14 +644,16 @@ def _log_query(
 # PUBLIC API
 # ──────────────────────────────────────────────────────────────────────────────
 
-def get_answer(query: str) -> dict[str, Any]:
+def get_answer(query: str, document_id: Optional[str] = None) -> dict[str, Any]:
     """
     Full RAG pipeline:
       Query → Hybrid Retrieve → Cross-Encoder Rerank → Grounded LLM → Cite → Log
+
+    Pass document_id to restrict retrieval to a single uploaded document.
     """
     start = time.time()
 
-    candidates = hybrid_retrieve(query)
+    candidates = hybrid_retrieve(query, document_id=document_id)
     if not candidates:
         return {
             "answer":       "I could not find the answer in the supplied documents.",
